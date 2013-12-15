@@ -1,0 +1,38 @@
+h1 {
+  font-family: monospace;
+  font-weight: bold;
+  margin-bottom: 0px;
+  padding-bottom: 0px;
+}
+
+sub {
+  margin-top: 0px;
+  padding-top;
+  float: left;
+}
+
+#matrix {
+  padding: 0px;
+  background-color: #222;
+}
+
+#txtFps {
+  border:0;
+  font-weight:bold;
+}
+
+#sldFps {
+  width: 200px;
+  height: 10px;
+}
+
+.cell {
+  width:  8px;
+  height: 8px;
+  margin: 0px;
+  padding: 0px;
+  float: left;
+  background-color: black;
+  border: 1px solid;
+  border-color: #333;
+}
