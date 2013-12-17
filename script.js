@@ -62,14 +62,17 @@ function cellIsAlive(cell) {
     }
 }
 
+//Kills a cell (paint it in black)
 function killCell(cell) {
     cell.css("background-color", "rgb(0, 0, 0)");
 }
 
+//Make a cell alive (paint it in white)
 function makeAliveCell(cell) {
     cell.css("background-color", "rgb(255, 255, 255)");
 }
 
+//Switches the state of a cell (alive => dead; dead=>alive)
 function switchCellState(cell) {
     if (cellIsAlive(cell)) {
         killCell(cell);
@@ -83,7 +86,6 @@ function switchCellState(cell) {
 function countNeighbours(cellX, cellY) {
     //Initialize counter
     nb = 0;
-
     //for each row around the cell (y-1, y, y+1)    
     for (y = cellY-1; y <= cellY+1; y++) {
         //if the row is in the matrix
@@ -99,7 +101,6 @@ function countNeighbours(cellX, cellY) {
                             //Count one more living neighbour
                             nb++;
                         }
-                        
                     }
                 }
             }
@@ -114,7 +115,7 @@ function nextStep() {
     // Will contain a list of the cells to kill or to make alive
     // after evaluating each cell
     toSwitch = [];
-    //For each cell in matrix...
+    //For each cell in matrix
     for (var y=0; y<matrix.length; y++) {
         for (var x=0; x<matrix[y].length; x++){
             cell = matrix[y][x];
