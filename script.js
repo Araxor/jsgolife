@@ -190,11 +190,12 @@ function animate() {
         }
     });
     
-    // If a mouseup event is trigerred, stop painting
+    // When a mouseup event is trigerred, stop painting
     $(document).on("mouseup", function() {
         painting = false;
     });
     
+    // When the mouse is over a cell and paint mode is activated, paint it
     $(".cell").on("mouseover", function() {
         if (painting) {
             if (paintLiving) {
@@ -206,7 +207,7 @@ function animate() {
         }
     });
     
-    //Maps the button "Next" to the step function
+    //When the button "Next" is pressed, go one step forward
     $("#btnNext").click(function(){
         nextStep();
     });
