@@ -1,12 +1,12 @@
 // GLOBALS
 var width = 40,    //width of the matrix
-        height = 40, //height of the matrix
-        matrix = [], //the matrix
-        fps = 5,            //number of frames to display per second
-        animationId = 0, //to remember wich animation start/stop
-        lastAnimTime = Date.now(), //to remember when was called the last animation frame
-        painting = false,
-        paintLiving = true;
+    height = 40, //height of the matrix
+    matrix = [], //the matrix
+    fps = 5,            //number of frames to display per second
+    animationId = 0, //to remember wich animation start/stop
+    lastAnimTime = Date.now(), //to remember when was called the last animation frame
+    painting = false,
+    paintLiving = true;
 
 //FUNCTIONS
 // Create the slider for fps control
@@ -31,50 +31,89 @@ function initSlider() {
     $("#txtFps").val($("#sldFps").slider( "value" ));
 }
 
-// Create the div where to display the matrix
-function initMatrix() {
-    //Create the div
-    matrixDiv = $('<div id="matrix">').appendTo('body');
-    
-    //make the matrix div not draggable (fixes bugs while painting)
-    matrixDiv.attr("ondragstart", "return false;");
-    
-    //Set the div to the correct size
-    matrixDiv.width(width*10);
-    matrixDiv.height(height*10);
-    
-    //Fill the div and the matrix with cells
+function initStage() {
+    // initialize the stage and the renderer
+    stage = new PIXI.Stage(0x000000, true);
+    stage.setInteractive(true);
+
+    return stage;
+}
+
+function initRenderer(rendererWidth, rendererHeight) {
+    renderer = PIXI.autoDetectRenderer(rendererWidth, rendererHeight);
+    //append the renderer to the page
+    document.body.appendChild(renderer.view);
+
+    return renderer;
+}
+
+function createCell(stage, x, y, width) {
+    cell = new PIXI.Graphics();
+    cell.beginFill(0x111111, 1)
+    cell.lineStyle(1, 0x000000, 1);
+    cell.drawRect(x*width, y*width, width, width);
+    cell.endFill();
+    stage.addChild(cell);
+
+    cell.alive = false;
+    console.log('x:'+x+" y:"+y+" bound:"cell.getBoundingClientRect());
+    //cell.hitArea = new PIXI.Rectangle(x, y, x+width, y+width);
+    cell.mousedown = function(data) {
+        // start painting on mouseover
+        painting = true;
+        //if the first clicked cell is alive...
+        if (this.alive) {
+            //start to paint dead cells
+            paintLiving = false;
+            //kills the clicked cell
+            killCell(this);
+            renderer.render(stage);
+        }
+        //if the first clicked cell is dead... 
+        else {
+            //start to paint living cells
+            paintLiving = true;
+            //make the clicked cell alive
+            makeAliveCell(this);
+        }
+    };
+    //cell.mouseup = cell.touchend = onCellMouseUp;
+
+    return cell;
+}
+
+function fillMatrix(stage) {
     for (y=0; y<height; y++) {
         matrix[y] = [];
         for (x=0; x<width; x++) {
-            matrix[y][x] = $('<div class="cell">').appendTo(matrixDiv); 
+            matrix[y][x] = createCell(stage, x, y, width);
         }
-    }
-}
-
-// Returns true if the given cell is alive, otherwise return false
-function cellIsAlive(cell) {
-    if (cell.css("background-color") == "rgb(0, 0, 0)") {
-        return false;
-    }
-    else {
-        return true;
     }
 }
 
 //Kills a cell (paint it in black)
 function killCell(cell) {
-    cell.css("background-color", "rgb(0, 0, 0)");
+    cell.alive = false;
+    cell.clear();
+    cell.beginFill(0x000000, 1);
+    cell.lineStyle(1, 0x000000, 1);
+    cell.drawRect(cell.position.x, cell.position.y, width, width);
+    cell.endFill();
 }
 
 //Make a cell alive (paint it in white)
 function makeAliveCell(cell) {
-    cell.css("background-color", "rgb(255, 255, 255)");
+    cell.alive = true;
+    cell.clear();
+    cell.beginFill(0xFFFFFF, 1);
+    cell.lineStyle(1, 0x000000, 1);
+    cell.drawRect(cell.position.x, cell.position.y, width, width);
+    cell.endFill();
 }
 
 //Switches the state of a cell (alive => dead; dead=>alive)
 function switchCellState(cell) {
-    if (cellIsAlive(cell)) {
+    if (cell.alive) {
         killCell(cell);
     }
     else {
@@ -97,7 +136,7 @@ function countNeighbours(cellX, cellY) {
                     //if the cell is not the given cell
                     if (!((x == cellX) && (y == cellY))) {
                         //if the cell is alive
-                        if (cellIsAlive(matrix[y][x])){
+                        if (matrix[y][x].alive){
                             //Count one more living neighbour
                             nb++;
                         }
@@ -121,17 +160,16 @@ function nextStep() {
             cell = matrix[y][x];
             //Count the neighbours of the cell
             neighbours = countNeighbours(x, y);
-            //Gets the cell's state
-            alive = cellIsAlive(cell);
+
             //If the cell is alive
             //and there's more than 3 or less than 2 neighbours..
-            if ((alive) && ((neighbours < 2) || (neighbours > 3)))
+            if ((cell.alive) && ((neighbours < 2) || (neighbours > 3)))
             {
                 //Add the cell to the switch list, so it will be killed
                 toSwitch.push(cell);
             }
             //If the cell is dead and it has 3 neighbours
-            else if ((!alive) && (neighbours == 3))
+            else if ((!cell.alive) && (neighbours == 3))
             {
                 //Add the cell to the switch list, so it will be made alive
                 toSwitch.push(cell);
@@ -145,6 +183,55 @@ function nextStep() {
     }
 }
 
+// BEGINNING (fired when document is ready)
+
+//Initialize the fps slider
+initSlider();
+//Creation of the stage
+var stage = initStage();
+//Creation of the renderer
+var renderer = initRenderer();
+//Fill the matrix, and add it in the stage
+fillMatrix(stage);
+//Renders the initial stage
+renderer.render(stage);
+
+
+
+// CALLBACKS
+// If a mousedown event is trigerred on a cell, start painting
+function onCellMouseDown() {
+    console.log("cell clicked");
+    // start painting on mouseover
+    painting = true;
+    //if the first clicked cell is alive...
+    if (cellIsAlive(this)) {
+        //start to paint dead cells
+        paintLiving = false;
+        //kills the clicked cell
+        killCell(this);
+    }
+    //if the first clicked cell is dead... 
+    else {
+        //start to paint living cells
+        paintLiving = true;
+        //make the clicked cell alive
+        makeAliveCell(this);
+    }
+}
+
+// When the mouse is over a cell and paint mode is activated, paint it
+function onCellMouseUp() {
+    if (painting) {
+        if (paintLiving) {
+            makeAliveCell(this);
+        }
+        else {
+            killCell(this);
+        }
+    }
+}
+
 //Function that animates automatically the matrix
 function animate() {
     //Already request the next animation frame
@@ -155,95 +242,41 @@ function animate() {
     
     //If it's time to draw the next frame (according to the fps limit)...
     if (delta > 1000/fps) {
-        //Draw the next step
+        //Render the stage
+        renderer.render(stage);
+        //Calculate the next step
         nextStep();
         //Save the time of this animation
         lastAnimTime = Date.now();
     }
 }
 
-// BEGINNING (fired when document is ready)
-(function() {
-    //Initialize the fps slider
-    initSlider();
-    //Creation of the matrix
-    initMatrix();
-    
-    // CALLBACKS
-    // If a mousedown event is trigerred on a cell, start painting
-    $(".cell").on("mousedown", function() {
-        // start painting on mouseover
-        painting = true;
-        //if the first clicked cell is alive...
-        if (cellIsAlive($(this))) {
-            //start to paint dead cells
-            paintLiving = false;
-            //kills the clicked cell
-            killCell($(this));
-        }
-        //if the first clicked cell is dead... 
-        else {
-            //start to paint living cells
-            paintLiving = true;
-            //make the clicked cell alive
-            makeAliveCell($(this));
-        }
-    });
-    
-    // When a mouseup event is trigerred, stop painting
-    $(document).on("mouseup", function() {
-        painting = false;
-    });
-    
-    // When the mouse is over a cell and paint mode is activated, paint it
-    $(".cell").on("mouseover", function() {
-        if (painting) {
-            if (paintLiving) {
-                makeAliveCell($(this));
-            }
-            else {
-                killCell($(this));
-            }
-        }
-    });
-    
-    //When the button "Next" is pressed, go one step forward
-    $("#btnNext").click(function(){
-        nextStep();
-    });
-    
-    //When the "Play button is triggered...
-    $("#btnPlay").click(function(){
-        //if this is the "Play" button
-        if ($(this).html() == "Play"){
-            //Transform it into a "Pause" button
-            $(this).html("Pause");
-            //deactivate "Next step" and "Previous step" button
-            $("#btnNext").attr("disabled", "disabled");
-            $("#btnPrevious").attr("disabled", "disabled");
-            //launch animation
-            animationId = requestAnimationFrame(animate);
-        }
-        // If this is the "Pause" button
-        else {
-            //Transforms it into a "Play" button
-            $(this).html("Play");
-            //activate "Next step" and "Previous step" button
-            $("#btnNext").removeAttr("disabled");
-            $("#btnPrevious").removeAttr("disabled");
-            //stop animation (if any)
-            if (animationId) {
-                cancelAnimationFrame(animationId);
-            }
-        }
-    });
-    
-    //When the "Pause" button is triggered...
-    $("#btnPause").click(function(){
-        //activate "Play" button
-        $("#btnPlay").removeAttr("disabled");
-        //deactivate "Pause" button
-        $(this).attr("disabled", "disabled");
+// When a mouseup event is trigerred, stop painting
+$(document).on("mouseup", function() {
+    painting = false;
+});
+
+//When the button "Next" is pressed, go one step forward
+$("#btnNext").click(function(){
+    nextStep();
+});
+
+//When the "Play button is triggered...
+$("#btnPlay").click(function(){
+    //if this is the "Play" button
+    if ($(this).html() == "Play"){
+        //Transform it into a "Pause" button
+        $(this).html("Pause");
+        //deactivate "Next step" and "Previous step" button
+        $("#btnNext").attr("disabled", "disabled");
+        $("#btnPrevious").attr("disabled", "disabled");
+        //launch animation
+        animationId = requestAnimationFrame(animate);
+    }
+    // If this is the "Pause" button
+    else {
+        //Transforms it into a "Play" button
+        $(this).html("Play");
         //activate "Next step" and "Previous step" button
         $("#btnNext").removeAttr("disabled");
         $("#btnPrevious").removeAttr("disabled");
@@ -251,5 +284,5 @@ function animate() {
         if (animationId) {
             cancelAnimationFrame(animationId);
         }
-    });
-}());
+    }
+});
