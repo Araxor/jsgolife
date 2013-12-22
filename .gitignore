@@ -221,6 +221,9 @@ pip-log.txt
 # Projects
 *.sublime-project
 
+# Workspaces
+*.sublime-workspace
+
 ############
 ## Code Orchestra Livecoding Tool
 #############
