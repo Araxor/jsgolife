@@ -1,16 +1,16 @@
 // GLOBALS
-var vCells = 100,    //number of vertical cells
-    hCells = 100,   // number of horizontal cells
-    cellSize = 5, // size of a cell (in pixels)
-    deadCellColor = 0x000000,
-    aliveCellColor = 0xFFFFFF,
-    cellBorderColor = 0x111111,
+var vCells = 50,    //number of vertical cells
+    hCells = 50,   // number of horizontal cells
+    cellSize = 10, // size of a cell (in pixels)
     matrix = [], //the matrix
     fps = 5,            //number of frames to display per second
     lastStepTime = Date.now(), //to remember when was called the last animation frame
-    painting = false,
-    paintLiving = true,
-    pause = true;
+    painting = false, //if we're painting
+    paintLiving = true, //if painting living cells (true) or dead cells (false)
+    pause = true, //if the game is paused or not
+    //Cell textures (images)
+    deadCellTexture = PIXI.Texture.fromImage("images/deadCell.png"),
+    aliveCellTexture = PIXI.Texture.fromImage("images/aliveCell.png");
 
 //FUNCTIONS
 // Create the slider for fps control
@@ -20,7 +20,7 @@ function initSlider() {
         range: "min", //Let the user only select one value
         value: fps, //Default valus is the current fps
         min: 0.1,     //Minimum is 1
-        max: 30, //Maximum is 30
+        max: 60, //Maximum is 30
         step: 0.1,
         
         //When the slider is changed..
@@ -54,32 +54,23 @@ function initRenderer() {
 
 // Creates a cell with all its default attributes & callbacks
 function createCell(stage, x, y) {
-    cell = new PIXI.Graphics();
+    cell = new PIXI.Sprite(deadCellTexture);
 
     //Defines the real (pixel) cordinates
-    realX = x*cellSize;
-    realY = y*cellSize;
-
-    //Draw the cell
-    cell.beginFill(deadCellColor, 1);
-    cell.lineStyle(1, cellBorderColor, 1);
-    cell.drawRect(realX, realY, cellSize, cellSize);
-    cell.endFill();
+    cell.position.x = x*cellSize;
+    cell.position.y = y*cellSize;
 
     //Custom property used to know if the cell is alive or not 
     cell.alive = false;
     
     //makes the cell interactive (mouse events activated)
     cell.interactive = true;
-    //sets up the area of the cell, for the mouse events
-    cell.hitArea = new PIXI.Rectangle(realX, realY, cellSize, cellSize);
 
     // Callbacks four mouse/touch events
     cell.mousedown = cell.touchstart = onCellMouseDown;
     cell.mouseover  = onCellMouseOver;
     // Adds the cell to the stage
     stage.addChild(cell);
-    //cell.mouseup = cell.touchend = onCellMouseUp;
 
     return cell;
 }
@@ -96,21 +87,13 @@ function fillMatrix(stage) {
 //Kills a cell (paint it in black)
 function killCell(cell) {
     cell.alive = false;
-    cell.clear();
-    cell.beginFill(deadCellColor, 1);
-    cell.lineStyle(1, cellBorderColor, 1);
-    cell.drawRect(cell.hitArea.x, cell.hitArea.y, cell.hitArea.width, cell.hitArea.height);
-    cell.endFill();
+    cell.setTexture(deadCellTexture);
 }
 
 //Make a cell alive (paint it in white)
 function makeAliveCell(cell) {
     cell.alive = true;
-    cell.clear();
-    cell.beginFill(aliveCellColor, 1);
-    cell.lineStyle(1, cellBorderColor, 1);
-    cell.drawRect(cell.hitArea.x, cell.hitArea.y, cell.hitArea.width, cell.hitArea.height);
-    cell.endFill();
+    cell.setTexture(aliveCellTexture);
 }
 
 //Switches the state of a cell (alive => dead; dead=>alive)
